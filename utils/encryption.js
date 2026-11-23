@@ -13,6 +13,11 @@ if (!/^[a-fA-F0-9]{64}$/.test(keyHex)) {
 
 const KEY = Buffer.from(keyHex, "hex");
 
+if (KEY.length !== 32) {
+  throw new Error(
+    "SESSION_ENCRYPTION_KEY must be a valid 32-byte key."
+  );
+}
 
 export function encryptJson(value) {
   const iv = crypto.randomBytes(12);
@@ -24,7 +29,8 @@ export function encryptJson(value) {
   );
 
   const plaintext = Buffer.from(
-    JSON.stringify(value)
+    JSON.stringify(value),
+    "utf8"
   );
 
   const ciphertext = Buffer.concat([
@@ -35,21 +41,26 @@ export function encryptJson(value) {
   const tag = cipher.getAuthTag();
 
   return [
-    iv,
-    tag,
-    ciphertext
-  ]
-    .map(part => part.toString("base64url"))
-    .join(".");
+    iv.toString("base64url"),
+    tag.toString("base64url"),
+    ciphertext.toString("base64url")
+  ].join(".");
 }
 
-
 export function decryptJson(payload) {
+  const parts = String(payload).split(".");
+
+  if (parts.length !== 3) {
+    throw new Error(
+      "Invalid encrypted auth record."
+    );
+  }
+
   const [
     ivText,
     tagText,
     dataText
-  ] = String(payload).split(".");
+  ] = parts;
 
   if (!ivText || !tagText || !dataText) {
     throw new Error(
@@ -57,20 +68,37 @@ export function decryptJson(payload) {
     );
   }
 
+  const iv = Buffer.from(
+    ivText,
+    "base64url"
+  );
+
+  const tag = Buffer.from(
+    tagText,
+    "base64url"
+  );
+
+  const ciphertext = Buffer.from(
+    dataText,
+    "base64url"
+  );
+
+  if (iv.length !== 12 || tag.length !== 16) {
+    throw new Error(
+      "Invalid encrypted auth record format."
+    );
+  }
+
   const decipher = crypto.createDecipheriv(
     "aes-256-gcm",
     KEY,
-    Buffer.from(ivText, "base64url")
+    iv
   );
 
-  decipher.setAuthTag(
-    Buffer.from(tagText, "base64url")
-  );
+  decipher.setAuthTag(tag);
 
   const plaintext = Buffer.concat([
-    decipher.update(
-      Buffer.from(dataText, "base64url")
-    ),
+    decipher.update(ciphertext),
     decipher.final()
   ]);
 
@@ -79,21 +107,18 @@ export function decryptJson(payload) {
   );
 }
 
-
 export function hashToken(token) {
   return crypto
     .createHash("sha256")
-    .update(token)
+    .update(String(token))
     .digest("hex");
 }
-
 
 export function randomToken() {
   return crypto
     .randomBytes(32)
     .toString("base64url");
 }
-
 
 export function randomId() {
   return crypto.randomUUID();
