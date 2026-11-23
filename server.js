@@ -14,32 +14,65 @@ const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
+// --------------------------------------------------
+// SECURITY HEADERS
+// --------------------------------------------------
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+  })
+);
+
+// --------------------------------------------------
+// CORS
+// --------------------------------------------------
+
 const allowedOrigins = new Set(
   [
     config.FRONTEND_URL,
-    ...config.FRONTEND_URLS
-  ].filter(Boolean)
+    ...(config.FRONTEND_URLS || [])
+  ]
+    .filter(Boolean)
+    .map(origin => String(origin).replace(/\/$/, ""))
 );
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  const normalizedOrigin = origin
+    ? String(origin).replace(/\/$/, "")
+    : null;
 
-  if (origin && allowedOrigins.has(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Credentials", "true");
+  if (normalizedOrigin && allowedOrigins.has(normalizedOrigin)) {
+    res.setHeader(
+      "Access-Control-Allow-Origin",
+      normalizedOrigin
+    );
+
+    res.setHeader(
+      "Access-Control-Allow-Credentials",
+      "true"
+    );
+
     res.setHeader(
       "Access-Control-Allow-Methods",
       "GET, POST, OPTIONS"
     );
+
     res.setHeader(
       "Access-Control-Allow-Headers",
       "Content-Type, Authorization"
     );
+
     res.setHeader("Vary", "Origin");
   }
 
   if (req.method === "OPTIONS") {
-    if (origin && !allowedOrigins.has(origin)) {
+    if (
+      normalizedOrigin &&
+      !allowedOrigins.has(normalizedOrigin)
+    ) {
       return res.status(403).json({
         code: "ORIGIN_NOT_ALLOWED",
         message: "This origin is not allowed."
@@ -52,12 +85,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false
-  })
-);
+// --------------------------------------------------
+// BODY PARSER
+// --------------------------------------------------
 
 app.use(
   express.json({
@@ -65,11 +95,15 @@ app.use(
   })
 );
 
+// --------------------------------------------------
+// CROSS-SITE PROTECTION
+// --------------------------------------------------
+
 app.use(rejectCrossSiteWrites);
 
-/*
- * HEALTH CHECK
- */
+// --------------------------------------------------
+// HEALTH CHECK
+// --------------------------------------------------
 
 app.get("/health", (_req, res) => {
   res.status(200).json({
@@ -79,18 +113,18 @@ app.get("/health", (_req, res) => {
   });
 });
 
-/*
- * SESSION API
- */
+// --------------------------------------------------
+// SESSION API
+// --------------------------------------------------
 
 app.use(
   "/api/v1/sessions",
   sessionRoutes
 );
 
-/*
- * 404
- */
+// --------------------------------------------------
+// 404
+// --------------------------------------------------
 
 app.use((_req, res) => {
   res.status(404).json({
@@ -99,9 +133,9 @@ app.use((_req, res) => {
   });
 });
 
-/*
- * ERROR HANDLER
- */
+// --------------------------------------------------
+// ERROR HANDLER
+// --------------------------------------------------
 
 app.use((error, _req, res, _next) => {
   const status = Number(error.status) || 500;
