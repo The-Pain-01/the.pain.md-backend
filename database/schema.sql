@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS bot_sessions (
 
     phone TEXT,
 
+    settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -21,9 +23,13 @@ CREATE TABLE IF NOT EXISTS bot_sessions (
     last_error TEXT
 );
 
+-- Ajoute settings aux anciennes tables si nécessaire.
+ALTER TABLE bot_sessions
+ADD COLUMN IF NOT EXISTS settings JSONB
+NOT NULL DEFAULT '{}'::jsonb;
+
 CREATE INDEX IF NOT EXISTS bot_sessions_status_idx
 ON bot_sessions(status);
-
 
 CREATE TABLE IF NOT EXISTS baileys_auth_state (
     session_id UUID NOT NULL
@@ -44,3 +50,6 @@ CREATE TABLE IF NOT EXISTS baileys_auth_state (
         key_id
     )
 );
+
+CREATE INDEX IF NOT EXISTS baileys_auth_session_idx
+ON baileys_auth_state(session_id);
