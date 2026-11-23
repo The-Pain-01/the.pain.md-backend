@@ -1,5 +1,6 @@
+
 {
-  "name": "the-pain-md",
+  "name": "the-pain-md-backend",
   "version": "3.0.0",
   "private": true,
   "type": "module",
@@ -7,7 +8,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "check": "node --check index.js && node --check server.js && node --check services/sessionManager.js"
+    "check": "node --check index.js && node --check server.js && node --check config.js"
   },
   "engines": {
     "node": ">=20.0.0"
