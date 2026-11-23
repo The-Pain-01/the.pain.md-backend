@@ -1,6 +1,15 @@
+
 import dotenv from "dotenv";
 
 dotenv.config();
+
+const parseBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === "") {
+    return defaultValue;
+  }
+
+  return value.toLowerCase() === "true";
+};
 
 const config = {
   BOT_NAME:
@@ -30,22 +39,47 @@ const config = {
     "https://whatsapp.com/channel/0029Vb7FTvDICVfgeK27ul2S",
 
   AUTO_READ:
-    process.env.AUTO_READ === "true",
+    parseBoolean(process.env.AUTO_READ),
 
   AUTO_TYPING:
-    process.env.AUTO_TYPING === "true",
+    parseBoolean(process.env.AUTO_TYPING),
 
   AUTO_RECORDING:
-    process.env.AUTO_RECORDING === "true",
+    parseBoolean(process.env.AUTO_RECORDING),
 
   AUTO_STATUS_VIEW:
-    process.env.AUTO_STATUS_VIEW === "true",
+    parseBoolean(process.env.AUTO_STATUS_VIEW),
 
   PAIN_THEME:
-    process.env.PAIN_THEME !== "false",
+    parseBoolean(process.env.PAIN_THEME, true),
 
   DARK_MODE:
-    process.env.DARK_MODE !== "false",
+    parseBoolean(process.env.DARK_MODE, true),
+
+  FRONTEND_URL:
+    process.env.FRONTEND_URL ||
+    "https://the-pain-md.vercel.app",
+
+  FRONTEND_URLS:
+    (process.env.FRONTEND_URLS || "")
+      .split(",")
+      .map(url => url.trim().replace(/\/$/, ""))
+      .filter(Boolean),
+
+  DATABASE_URL:
+    process.env.DATABASE_URL || "",
+
+  DATABASE_SSL:
+    parseBoolean(process.env.DATABASE_SSL, true),
+
+  SESSION_ENCRYPTION_KEY:
+    process.env.SESSION_ENCRYPTION_KEY || "",
+
+  COOKIE_SECURE:
+    parseBoolean(process.env.COOKIE_SECURE, true),
+
+  COOKIE_NAME:
+    process.env.COOKIE_NAME || "pain_session",
 
   OPENROUTER_API_KEY:
     process.env.OPENROUTER_API_KEY || "",
